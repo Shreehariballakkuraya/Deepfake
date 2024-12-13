@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepFake Detection</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #f3f4f6;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #2d3748;
+            margin-bottom: 20px;
+            font-size: 2.5rem;
+            font-weight: bold;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        #uploadForm {
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        #uploadForm:hover {
+            transform: scale(1.05);
+        }
+
+        #uploadForm input[type="file"] {
+            display: none;
+        }
+
+        #uploadForm label {
+            font-size: 1.2rem;
+            color: #2d3748;
+            cursor: pointer;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+
+        #uploadForm label:hover {
+            background-color: #45a049;
+        }
+
+        #uploadForm button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #1d72b8;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s;
+        }
+
+        #uploadForm button:hover {
+            background-color: #0e61a0;
+        }
+
+        #result {
+            margin-top: 30px;
+            width: 100%;
+            max-width: 800px;
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            display: none;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        #result.show {
+            display: block;
+            opacity: 1;
+        }
+
+        #result h2, #result h3 {
+            color: #2d3748;
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        #result h3 {
+            font-size: 1.4rem;
+            margin-top: 20px;
+        }
+
+        #result p {
+            font-size: 1.1rem;
+            margin: 10px 0;
+            color: #4a5568;
+        }
+
+        #result p span {
+            font-weight: bold;
+            color: #38a169;
+        }
+
+        /* Horizontal Scrollable Frame Gallery */
+        .frame-gallery-container {
+            width: 100%;
+            overflow-x: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #888 #f1f1f1;
+        }
+
+        .frame-gallery {
+            display: flex;
+            gap: 15px;
+            padding: 15px;
+            overflow-x: scroll;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .frame-gallery::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .frame-gallery::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .frame-gallery::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+
+        .frame-gallery::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        .frame-gallery .gallery-item {
+            flex: 0 0 auto;
+            scroll-snap-align: center;
+            position: relative;
+            transition: transform 0.3s ease;
+        }
+
+        .frame-gallery .gallery-item img {
+            width: 200px;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .frame-gallery .gallery-item:hover {
+            transform: scale(1.05);
+        }
+
+        .frame-gallery .gallery-item .overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.5);
+            overflow: hidden;
+            width: 100%;
+            height: 0;
+            transition: 0.5s ease;
+        }
+
+        .frame-gallery .gallery-item:hover .overlay {
+            height: 30%;
+        }
+
+        .frame-gallery .gallery-item .overlay-text {
+            color: white;
+            font-size: 12px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .frame-gallery .gallery-item:hover .overlay-text {
+            opacity: 1;
+        }
+
+        /* Loading Spinner */
+        #loadingSpinner {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid #3498db;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 2s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        @media (max-width: 600px) {
+            .frame-gallery .gallery-item img {
+                width: 150px;
+                height: 100px;
+            }
+        }
+        /* Feedback Section */
+#feedbackButtons {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+}
+
+#feedbackButtons button {
+    padding: 10px 20px;
+    font-size: 1rem;
+    font-weight: bold;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: transform 0.2s, background-color 0.3s, box-shadow 0.3s;
+}
+
+/* Correct Button */
+#feedbackButtons button:first-child {
+    background-color: #38a169; /* Green */
+    color: white;
+}
+
+#feedbackButtons button:first-child:hover {
+    background-color: #2f855a; /* Darker Green */
+    transform: scale(1.05);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* Incorrect Button */
+#feedbackButtons button:last-child {
+    background-color: #e53e3e; /* Red */
+    color: white;
+}
+
+#feedbackButtons button:last-child:hover {
+    background-color: #c53030; /* Darker Red */
+    transform: scale(1.05);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+    </style>
+</head>
+<body>
+    <h1>DeepFake Detection</h1>
+    <div id="uploadForm">
+        <label for="videoFile">Choose a Video File</label>
+        <input type="file" id="videoFile" accept="video/*">
+        <button onclick="uploadVideo()">Upload & Analyze</button>
+    </div>
+
+    <div id="loadingSpinner"></div>
+
+    <div id="result">
+        <h2>Detection Results</h2>
+        <p id="fakeDecision"></p>
+        <p id="consistentFakeFrames"></p>
+        <p id="averageFakeScore"></p>
+
+        <h3>Extracted Frames</h3>
+        <div class="frame-gallery-container">
+            <div id="frameGallery" class="frame-gallery"></div>
+        </div>
+
+        <h3>Detected Faces</h3>
+        <div class="frame-gallery-container">
+            <div id="detectedFacesGallery" class="frame-gallery"></div>
+        </div>
+
+        <!-- Feedback Section -->
+        <h3>Is the Prediction Correct?</h3>
+        <div id="feedbackButtons">
+            <button onclick="submitFeedback('correct')">Correct</button>
+            <button onclick="submitFeedback('incorrect')">Incorrect</button>
+        </div>
+    </div>
+
+    <script>
+        const videoFile = document.getElementById('videoFile');
+        const uploadForm = document.getElementById('uploadForm');
+        const resultDiv = document.getElementById('result');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const fakeDecisionEl = document.getElementById('fakeDecision');
+        const consistentFakeFramesEl = document.getElementById('consistentFakeFrames');
+        const averageFakeScoreEl = document.getElementById('averageFakeScore');
+        const frameGallery = document.getElementById('frameGallery');
+        const detectedFacesGallery = document.getElementById('detectedFacesGallery');
+        let currentVideoName = ''; // To track video name for feedback submission
+        let currentPrediction = ''; // To track model prediction for feedback
+
+        // Custom file input label
+        videoFile.addEventListener('change', function() {
+            const label = uploadForm.querySelector('label');
+            label.textContent = this.files[0] ? this.files[0].name : 'Choose a Video File';
+        });
+
+        function createGalleryItem(src, alt, index) {
+            const galleryItem = document.createElement('div');
+            galleryItem.classList.add('gallery-item');
+
+            const img = document.createElement('img');
+            img.src = src;
+            img.alt = alt;
+
+            const overlay = document.createElement('div');
+            overlay.classList.add('overlay');
+
+            const overlayText = document.createElement('div');
+            overlayText.classList.add('overlay-text');
+            overlayText.textContent = `Frame ${index + 1}`;
+
+            overlay.appendChild(overlayText);
+            galleryItem.appendChild(img);
+            galleryItem.appendChild(overlay);
+
+            return galleryItem;
+        }
+
+        function uploadVideo() {
+            if (!videoFile.files.length) {
+                alert('Please select a video file first.');
+                return;
+            }
+
+            // Reset previous results
+            resultDiv.classList.remove('show');
+            frameGallery.innerHTML = '';
+            detectedFacesGallery.innerHTML = '';
+
+            // Show loading spinner
+            loadingSpinner.style.display = 'block';
+
+            // Prepare form data
+            const formData = new FormData();
+            formData.append('video', videoFile.files[0]);
+
+            // Send upload request
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Hide loading spinner
+                loadingSpinner.style.display = 'none';
+
+                // Display results
+                resultDiv.classList.add('show');
+                currentVideoName = data.video_name; // Store video name for feedback
+                currentPrediction = data.fake_decision_by_count ? 'fake' : 'real'; // Store prediction
+
+                // Set fake decision text
+                const fakeDecisionByCount = data.fake_decision_by_count ?
+                    '<span style="color: red;">Likely Deepfake (by frame count)</span>' :
+                    '<span style="color: green;">Likely Real (by frame count)</span>';
+
+                const fakeDecisionByTemporal = data.fake_decision_by_temporal ?
+                    '<span style="color: red;">Likely Deepfake (by temporal analysis)</span>' :
+                    '<span style="color: green;">Likely Real (by temporal analysis)</span>';
+
+                fakeDecisionEl.innerHTML = `Deepfake Detection: ${fakeDecisionByCount} / ${fakeDecisionByTemporal}`;
+                consistentFakeFramesEl.innerHTML = `Consistent Fake Frames: <span>${data.consistent_fake_frames}</span>`;
+                averageFakeScoreEl.innerHTML = `Average Fake Score: <span>${(data.average_fake_score * 100).toFixed(2)}%</span>`;
+
+                // Display extracted frames with hover effect
+                data.frame_paths.forEach((framePath, index) => {
+                    const galleryItem = createGalleryItem(framePath, 'Extracted Frame', index);
+                    frameGallery.appendChild(galleryItem);
+                });
+
+                // Display detected faces with hover effect
+                let faceIndex = 0;
+                data.face_frame_paths.forEach(framefaces => {
+                    framefaces.forEach(facePath => {
+                        const galleryItem = createGalleryItem(facePath, 'Detected Face', faceIndex);
+                        detectedFacesGallery.appendChild(galleryItem);
+                        faceIndex++;
+                    });
+                });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                loadingSpinner.style.display = 'none';
+                alert('An error occurred during video processing.');
+            });
+        }
+
+        function submitFeedback(feedback) {
+            if (!currentVideoName || !currentPrediction) {
+                alert('No video data available for feedback submission.');
+                return;
+            }
+
+            const feedbackData = {
+                video_name: currentVideoName,
+                model_prediction: currentPrediction,
+                user_feedback: feedback
+            };
+
+            fetch('/feedback', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(feedbackData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert('Thank you for your feedback!');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while submitting feedback.');
+            });
+        }
+    </script>
+</body>
+</html>
