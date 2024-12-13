@@ -8,7 +8,7 @@ from PIL import Image
 from model import EfficientNetClassifier  # Import your model class
 import numpy as np
 import matplotlib.pyplot as plt
-app = Flask(__name__)
+app = Flask(__name__, template_folder='.')
 
 # Paths
 output_video_frames_dir = "temp"  # Directory to save extracted frames
