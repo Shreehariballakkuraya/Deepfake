@@ -24,7 +24,7 @@ feedback_file = "feedback.csv"  # Path to store feedback
 s3 = boto3.client('s3',
                   aws_access_key_id='AWS_ACCESS_KEY_ID',
                   aws_secret_access_key='AWS_ACCESS_KEY_ID',
-                  region_name='AWS_REGION'
+                  region_name='AWS_REGION',
                   BUCKET_NAME = 'AWS_BUCKET_NAME')# Replace with your S3 bucket name
 
 # Load pre-trained DNN face detector
