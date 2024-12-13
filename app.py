@@ -17,8 +17,8 @@ model_path = "best_model.pth"  # Path to the saved model
 feedback_file = "feedback.csv"  # Path to store feedback
 
 # Load pre-trained DNN face detector
-dnn_model_path = r"C:/Users/naras/PycharmProjects/DeepFake_Detect/models/deploy.prototxt"
-dnn_weights_path = r"C:/Users/naras/PycharmProjects/DeepFake_Detect/models/res10_300x300_ssd_iter_140000.caffemodel"
+dnn_model_path = "models/deploy.prototxt"
+dnn_weights_path = "models/res10_300x300_ssd_iter_140000.caffemodel"
 net = cv2.dnn.readNetFromCaffe(dnn_model_path, dnn_weights_path)
 
 # Load the trained model
