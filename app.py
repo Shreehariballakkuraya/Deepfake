@@ -8,6 +8,10 @@ from PIL import Image
 from model import EfficientNetClassifier  # Import your model class
 import numpy as np
 import matplotlib.pyplot as plt
+import boto3
+from werkzeug.utils import secure_filename
+
+# Initialize Flask app
 app = Flask(__name__, template_folder='.')
 
 # Paths
@@ -15,6 +19,10 @@ output_video_frames_dir = "temp"  # Directory to save extracted frames
 output_cropped_frames_dir = "temp_frames"  # Directory to save cropped face frames
 model_path = "best_model.pth"  # Path to the saved model
 feedback_file = "feedback.csv"  # Path to store feedback
+
+# AWS S3 Setup
+s3 = boto3.client('s3')
+BUCKET_NAME = 'deepfakernsit'  # Replace with your S3 bucket name
 
 # Load pre-trained DNN face detector
 dnn_model_path = "deploy.prototxt"
@@ -54,15 +62,16 @@ def upload_video():
     video_file = request.files['video']
 
     if video_file:
-        # Save the video file to the 'uploads' folder
-        video_path = os.path.join('uploads', video_file.filename)
-        video_file.save(video_path)
+        # Save the video to S3
+        video_filename = secure_filename(video_file.filename)
+        video_path = os.path.join('uploads', video_filename)
+        s3.upload_fileobj(video_file, BUCKET_NAME, video_filename)
 
         # Extract the video name (without extension)
-        video_name = os.path.splitext(os.path.basename(video_path))[0]
+        video_name = os.path.splitext(os.path.basename(video_filename))[0]
 
         # Process the video
-        result = process_video(video_path, video_name)
+        result = process_video(video_filename, video_name)
 
         # Convert numpy types to Python types for JSON serialization
         result = convert_numpy_types(result)
@@ -144,6 +153,9 @@ def process_video(input_video_path, video_name):
         cv2.imwrite(frame_filename, frame)
         frame_paths.append(f"/temp/{video_name}/frame_{processed_frame_count:04d}.jpg")
 
+        # Upload frame to S3
+        s3.upload_file(frame_filename, BUCKET_NAME, f"{video_name}/frames/frame_{processed_frame_count:04d}.jpg")
+
         # Prepare the frame for DNN detection
         h, w = frame.shape[:2]
         blob = cv2.dnn.blobFromImage(frame, 1.0, (300, 300), (104.0, 177.0, 123.0))
@@ -167,6 +179,9 @@ def process_video(input_video_path, video_name):
                                                      f"frame_{processed_frame_count:04d}_face_{i + 1}.jpg")
                 cv2.imwrite(cropped_face_filename, cropped_face)
                 frame_faces.append(f"/temp_frames/{video_name}/frame_{processed_frame_count:04d}_face_{i + 1}.jpg")
+
+                # Upload face frame to S3
+                s3.upload_file(cropped_face_filename, BUCKET_NAME, f"{video_name}/faces/frame_{processed_frame_count:04d}_face_{i + 1}.jpg")
 
                 # Predict whether the face is real or fake
                 total_faces_detected += 1
