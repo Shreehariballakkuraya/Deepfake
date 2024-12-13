@@ -21,8 +21,10 @@ model_path = "best_model.pth"  # Path to the saved model
 feedback_file = "feedback.csv"  # Path to store feedback
 
 # AWS S3 Setup
-s3 = boto3.client('s3')
-BUCKET_NAME = 'deepfakernsit'  # Replace with your S3 bucket name
+s3 = boto3.client('s3',
+                  aws_access_key_id='YOUR_ACCESS_KEY',
+                  aws_secret_access_key='YOUR_SECRET_KEY',
+                  region_name='YOUR_REGION'BUCKET_NAME = 'deepfakernsit'  # Replace with your S3 bucket name
 
 # Load pre-trained DNN face detector
 dnn_model_path = "deploy.prototxt"
