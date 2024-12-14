@@ -30,13 +30,13 @@ app = Flask(__name__, template_folder='.')
 # Model loading
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 num_classes = 3  # Update according to your dataset
-model_path = "models/best_model.pth"
+model_path = "best_model.pth"
 
 # Ensure the model file is downloaded from S3
 if not os.path.exists(model_path):
     os.makedirs(os.path.dirname(model_path), exist_ok=True)
     try:
-        s3_client.download_file(BUCKET_NAME, "models/best_model.pth", model_path)
+        s3_client.download_file(BUCKET_NAME, "best_model.pth", model_path)
         print("Model downloaded successfully.")
     except NoCredentialsError:
         print("AWS credentials not available.")
