@@ -9,10 +9,7 @@ from torchvision import transforms
 from PIL import Image
 import boto3
 from botocore.exceptions import NoCredentialsError
-from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
 
 # AWS Credentials and S3 Config
 aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
